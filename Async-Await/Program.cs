@@ -1,125 +1,66 @@
-﻿namespace Async_Await
+﻿using System;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+
+namespace Async_Await
 {
     class Program
     {
         static void Main(string[] args)
         {
+            Console.WriteLine(MyDoAsync().Result);
         }
 
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#region sample
-#if false
-    class Program
-    {
-        static void Main(string[] args)
+        static async Task<int> DoAsync()
         {
-            MyFooAsync().Wait();
-            Console.ReadLine();
-        }
-
-        public static async Task<int> FooAsync()
-        {
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(10000).ConfigureAwait(false);
             return 42;
         }
 
-        public static Task<int> MyFooAsync()
+        static Task<int> MyDoAsync()
         {
-            var statemachine = new MyFooAsyncStateMachine();
-            statemachine.methodBuilder = new AsyncTaskMethodBuilder<int>();
-            statemachine.methodBuilder.Start(ref statemachine);
-            return statemachine.methodBuilder.Task;
+            var stateMachine = new MyDoAsyncStateMachine();
+            stateMachine.methodBuilder = new AsyncTaskMethodBuilder<int>();
+            stateMachine.methodBuilder.Start(ref stateMachine);
+            return stateMachine.methodBuilder.Task;
         }
-    }
 
-    public struct MyFooAsyncStateMachine : IAsyncStateMachine
-    {
-        public AsyncTaskMethodBuilder<int> methodBuilder;
-        private TaskAwaiter awaiter;
-        private int state;
-
-        public void MoveNext()
+        public struct MyDoAsyncStateMachine : IAsyncStateMachine
         {
-            if (state == 0)
+            public AsyncTaskMethodBuilder<int> methodBuilder;
+            public int state;
+            public TaskAwaiter awaiter;
+
+            public void MoveNext()
             {
-                awaiter = Task.Delay(TimeSpan.FromSeconds(10)).GetAwaiter();
-
-                if (awaiter.IsCompleted)
+                if (state == 0)
                 {
-                    goto state1;
-                }
-                else
-                {
-                    state = 1;
-                    methodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref this);
+                    awaiter = Task.Delay(10000).GetAwaiter();
+                    if (awaiter.IsCompleted)
+                    {
+                        state = 1;
+                        goto state1;
+                    }
+                    else
+                    {
+                        state = 1;
+                        methodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref this);
+                    }
+                    return;
                 }
 
+state1:
+                if(state == 1)
+                {
+                    awaiter.GetResult();
+                    methodBuilder.SetResult(42);
+                }
             }
 
-            state1:
-            if (state == 1)
+            public void SetStateMachine(IAsyncStateMachine stateMachine)
             {
-                awaiter.GetResult();
-                methodBuilder.SetResult(42);
-                return;
+                methodBuilder.SetStateMachine(stateMachine);
             }
         }
-
-        public void SetStateMachine(IAsyncStateMachine stateMachine)
-        {
-            stateMachine.SetStateMachine(this);
-        }
     }
-#endif
-#endregion
+}
